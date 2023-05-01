@@ -42,7 +42,7 @@ enum CalculatorButton: String {
 }
 
 enum Operation {
-    case add, subtract, multiply, divide, equal, none
+    case add, subtract, multiply, divide, equal, decimal, none
 }
 
 
@@ -68,8 +68,12 @@ struct ContentView: View {
         }
         
         let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = valueDouble.truncatingRemainder(dividingBy: 1) == 0 ? 0 : 2
+        formatter.maximumFractionDigits = valueDouble.truncatingRemainder(dividingBy: 1) == 0 ? 0 : .max
+        formatter.groupingSize = 3
+        formatter.groupingSeparator = " "
+            
         
         return formatter.string(from: NSNumber(value: valueDouble))!
     }
@@ -135,13 +139,12 @@ struct ContentView: View {
             executeOperation(operation: self.currentOperation)
             self.currentOperation = .none
             return
-        case .none:
+        case .none, .decimal:
             return
         }
         
         self.value = "\(newValue)"
         self.storedValue = newValue
-        self.currentOperation = operation
     }
     
     func pressedButton(button: CalculatorButton) {
@@ -165,16 +168,25 @@ struct ContentView: View {
             case .add: self.value = "\(stored + current)"
             case .subtract: self.value = "\(stored - current)"
             case .multiply: self.value = "\(stored * current)"
-            case .divide: self.value = "\(stored / current)"
-            case .none, .equal: //Fix equal
+            case .divide: self.value = current == 0 ? "Error" : "\(stored / current)"
+            case .none, .equal, .decimal: //Fix equal
                 break
             }
         case .clear:
             self.value = "0"
-        case .decimal, .negative, .percent:
+            self.storedValue = 0.0
+            self.currentOperation = .none
+            lastButtonPressedIsDigit = false
+        case .decimal:
+            self.currentOperation = .decimal
+        case .negative, .percent:
             break
         default:
-            if (self.lastButtonPressedIsDigit) {
+            if (self.currentOperation == .decimal) {
+                self.value = "\(self.value).\(button.rawValue)"
+                self.currentOperation = .none
+            }
+            else if (self.lastButtonPressedIsDigit) {
                 self.value = "\(self.value)\(button.rawValue)"
             } else {
                 self.value = button.rawValue
