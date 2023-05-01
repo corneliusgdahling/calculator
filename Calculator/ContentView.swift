@@ -52,7 +52,7 @@ struct ContentView: View {
     @State var value = "0"
     @State var storedValue = 0.0
     @State var currentOperation: Operation = .none
-    @State var lastButtonPressedIsDigit: Bool = false
+    @State var lastButtonPressed: CalculatorButton = .zero
     
     let buttons: [[CalculatorButton]] = [
         [.clear, .negative, .percent, .divide],
@@ -78,6 +78,29 @@ struct ContentView: View {
         return formatter.string(from: NSNumber(value: valueDouble))!
     }
     
+    func buttonIsOperator(_ button: CalculatorButton) -> Bool {
+        switch button {
+        case .add, .subtract, .multiply, .divide:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    func buttonIsClicked(_ button: CalculatorButton) -> Bool { button == self.lastButtonPressed }
+    
+    func renderButton(button: CalculatorButton) -> some View {
+        let buttonShouldChangeColor = buttonIsClicked(button) && buttonIsOperator(button)
+        return Text(button.rawValue)
+            .font(.system(size: 64))
+            .frame(width: self.buttonWidth(button: button) / 1.35,
+                   height: self.buttonHeight() / 1.35
+            )
+            .background(buttonShouldChangeColor ? .white : button.buttonColor)
+            .foregroundColor(buttonShouldChangeColor ? button.buttonColor : .white)
+            .cornerRadius(self.buttonWidth(button: button) / 2)
+    }
+    
     var body: some View {
         ZStack {
             Color.black.edgesIgnoringSafeArea(.all)
@@ -98,14 +121,7 @@ struct ContentView: View {
                             Button(action: {
                                 self.pressedButton(button: button)
                             }, label: {
-                                Text(button.rawValue)
-                                    .font(.system(size: 64))
-                                    .frame(width: self.buttonWidth(button: button) / 1.35,
-                                           height: self.buttonHeight() / 1.35
-                                    )
-                                    .background(button.buttonColor)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(self.buttonWidth(button: button) / 2)
+                                renderButton(button: button)
                             })
                         }
                     }
@@ -147,6 +163,15 @@ struct ContentView: View {
         self.storedValue = newValue
     }
     
+    func lastPressedButtonIsDigit(button: CalculatorButton) -> Bool {
+        switch button {
+        case .zero, .one, .two, .three, .four, .five, .six, .seven, .eight, .nine:
+            return true
+        default:
+            return false
+        }
+    }
+    
     func pressedButton(button: CalculatorButton) {
         switch button {
         case .add:
@@ -176,7 +201,6 @@ struct ContentView: View {
             self.value = "0"
             self.storedValue = 0.0
             self.currentOperation = .none
-            lastButtonPressedIsDigit = false
         case .decimal:
             self.currentOperation = .decimal
         case .negative, .percent:
@@ -186,15 +210,13 @@ struct ContentView: View {
                 self.value = "\(self.value).\(button.rawValue)"
                 self.currentOperation = .none
             }
-            else if (self.lastButtonPressedIsDigit) {
+            else if (lastPressedButtonIsDigit(button: self.lastButtonPressed)) {
                 self.value = "\(self.value)\(button.rawValue)"
             } else {
                 self.value = button.rawValue
             }
-            self.lastButtonPressedIsDigit = true
-            return
         }
-        self.lastButtonPressedIsDigit = false
+        self.lastButtonPressed = button
     }
     
     func buttonWidth(button: CalculatorButton) -> CGFloat {
