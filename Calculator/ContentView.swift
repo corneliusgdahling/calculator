@@ -42,7 +42,7 @@ enum CalculatorButton: String {
 }
 
 enum Operation {
-    case add, subtract, multiply, divide, equal, decimal, none
+    case add, subtract, multiply, divide, equal, none
 }
 
 
@@ -90,6 +90,10 @@ struct ContentView: View {
     func buttonIsClicked(_ button: CalculatorButton) -> Bool { button == self.lastButtonPressed }
     
     func renderButton(button: CalculatorButton) -> some View {
+//        var value = button.rawValue
+//        if (value == "AC" && lastPressedButtonIsDigit(button: button)) {
+//            value = "C"
+//        }
         let buttonShouldChangeColor = buttonIsClicked(button) && buttonIsOperator(button)
         return Text(button.rawValue)
             .font(.system(size: 64))
@@ -155,7 +159,7 @@ struct ContentView: View {
             executeOperation(operation: self.currentOperation)
             self.currentOperation = .none
             return
-        case .none, .decimal:
+        case .none:
             return
         }
         
@@ -194,23 +198,17 @@ struct ContentView: View {
             case .subtract: self.value = "\(stored - current)"
             case .multiply: self.value = "\(stored * current)"
             case .divide: self.value = current == 0 ? "Error" : "\(stored / current)"
-            case .none, .equal, .decimal: //Fix equal
+            case .none, .equal: //Fix equal
                 break
             }
         case .clear:
             self.value = "0"
             self.storedValue = 0.0
             self.currentOperation = .none
-        case .decimal:
-            self.currentOperation = .decimal
         case .negative, .percent:
             break
         default:
-            if (self.currentOperation == .decimal) {
-                self.value = "\(self.value).\(button.rawValue)"
-                self.currentOperation = .none
-            }
-            else if (lastPressedButtonIsDigit(button: self.lastButtonPressed)) {
+            if (lastPressedButtonIsDigit(button: self.lastButtonPressed) || self.lastButtonPressed == .decimal) {
                 self.value = "\(self.value)\(button.rawValue)"
             } else {
                 self.value = button.rawValue
